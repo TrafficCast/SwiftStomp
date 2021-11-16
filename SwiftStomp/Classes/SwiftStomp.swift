@@ -100,7 +100,7 @@ public class SwiftStomp{
     fileprivate var reachability : Reachability!
     fileprivate var hostIsReachabile = true
     
-    /// Auto ping peroperties
+    /// Auto ping properties
     fileprivate var pingTimer : Timer?
     fileprivate var pingInterval: TimeInterval = 10 //< 10 Seconds
     fileprivate var autoPingEnabled = false
@@ -230,7 +230,9 @@ public extension SwiftStomp{
         
         self.sendFrame(frame: StompFrame(name: .send, headers: headers, encodableBody: body, jsonDateEncodingStrategy: jsonDateEncodingStrategy))
     }
-    
+	
+	func sendPing() { socket.write(ping: Data()) }
+
     func ack(messageId : String, transaction : String? = nil){
         let headerBuilder = StompHeaderBuilder
             .add(key: .id, value: messageId)
@@ -549,10 +551,12 @@ extension SwiftStomp : WebSocketDelegate{
             stompLog(type: .info, message: "Socket: Received data: \(data.count)")
         case .ping(let data):
             stompLog(type: .info, message: "Socket: Ping data with length \(String(describing: data?.count))")
-            
+			
+			self.delegate?.onPing()
         case .pong(let data):
             stompLog(type: .info, message: "Socket: Pong data with length \(String(describing: data?.count))")
             
+			self.delegate?.onPong()
         case .viabilityChanged(let viability):
             stompLog(type: .info, message: "Socket: Viability changed: \(viability)")
             self.delegate?.onSocketEvent(eventName: "viabilityChangedTo\(viability)", description: "Socket viability changed")
@@ -603,6 +607,10 @@ public protocol SwiftStompDelegate{
     func onError(swiftStomp : SwiftStomp, briefDescription : String, fullDescription : String?, receiptId : String?, type : StompErrorType)
     
     func onSocketEvent(eventName : String, description : String)
+	
+	func onPing()
+	
+	func onPong()
 }
 
 // MARK: - Stomp Frame Class
